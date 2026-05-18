@@ -3207,6 +3207,36 @@ export class BridgeWebSocketServer {
                 : [],
             } as Record<string, unknown>);
           }
+          // Send cached slash commands so the client can restore them even when
+          // using delta mode (the original init/supported_commands message is
+          // unlikely to appear in the delta window).
+          const cached = this.sessionManager.getCachedCommands(
+            session.projectPath,
+          );
+          if (
+            cached &&
+            (cached.slashCommands.length > 0 ||
+                cached.skills.length > 0 ||
+                cached.apps.length > 0 ||
+                cached.plugins.length > 0)
+          ) {
+            this.send(ws, {
+              type: "system",
+              subtype: "supported_commands",
+              sessionId: msg.sessionId,
+              slashCommands: cached.slashCommands,
+              skills: cached.skills,
+              ...(cached.skillMetadata
+                ? { skillMetadata: cached.skillMetadata }
+                : {}),
+              apps: cached.apps,
+              ...(cached.appMetadata ? { appMetadata: cached.appMetadata } : {}),
+              plugins: cached.plugins,
+              ...(cached.pluginMetadata
+                ? { pluginMetadata: cached.pluginMetadata }
+                : {}),
+            });
+          }
         } else {
           this.send(ws, {
             type: "error",
