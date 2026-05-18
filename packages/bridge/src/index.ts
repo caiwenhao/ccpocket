@@ -215,16 +215,25 @@ export async function startServer() {
     printStartupInfo(PORT, HOST, API_KEY);
   });
 
-  function shutdown() {
+  let shuttingDown = false;
+  async function shutdown() {
+    if (shuttingDown) return;
+    shuttingDown = true;
     console.log("\n[bridge] Shutting down gracefully...");
     mdns?.stop();
     wsServer?.close();
     httpServer.close();
+    // Wait for session state to flush to disk before exiting.
+    try {
+      await wsServer?.flushSessionState();
+    } catch (err) {
+      console.error("[bridge] Failed to flush session state:", err);
+    }
     process.exit(0);
   }
 
-  process.on("SIGINT", shutdown);
-  process.on("SIGTERM", shutdown);
+  process.on("SIGINT", () => void shutdown());
+  process.on("SIGTERM", () => void shutdown());
 }
 
 // Auto-start when executed directly (node dist/index.js, tsx src/index.ts)

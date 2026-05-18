@@ -1416,6 +1416,11 @@ export class BridgeWebSocketServer {
     this.wss.close();
   }
 
+  /** Flush session state store to disk. Call after close() before process.exit(). */
+  async flushSessionState(): Promise<void> {
+    await this.sessionStateStore.flush();
+  }
+
   /** Return session count for /health endpoint. */
   get sessionCount(): number {
     return this.sessionManager.list().length;
